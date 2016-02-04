@@ -5,7 +5,7 @@ import json
 import ijson
 from math import radians, cos, sin, sqrt, asin
 
-import math
+import simplekml
 
 
 def run():
@@ -18,29 +18,12 @@ def run():
     shift_distance = 0
     csv_file = open('shifts.csv')
     spamreader = csv.reader(csv_file, delimiter=',', quotechar='"')
-    shifts = []
-
-    i_date = None
-
     for row in spamreader:
 
-        if i_date is not None and date is not None:
-
-            if i_date < start_date:
-                break
-
-            if i_date > end_date:
-                continue
-
+        if date is not None:
             print("Distance for shift on {} from {} to {} was {}km".format(date, start, end, shift_distance))
-            shifts.append({
-                'date': date,
-                'start': start,
-                'end': end,
-                'kilometers': '%0d' % shift_distance
-            })
 
-
+        coords = []
         shift_distance = 0
         prev_lat = None
         prev_lon = None
@@ -81,35 +64,36 @@ def run():
                     distance = haversine(prev_lon, prev_lat, lon, lat)
                     shift_distance += distance
 
+                coords.append((lon, lat))
+
                 prev_lon = lon
                 prev_lat = lat
 
                 # print('Was at {}, {} during shift at {}'.format(lat, lon, time))
 
         except StopIteration:
-            continue
 
-    with open('shifts_after.csv', 'w') as csvfile:
-        spamwriter = csv.writer(csvfile, delimiter=',',
-                                quotechar='"',
-                                quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(['Date', 'Shift Start', 'Shift End', 'Distance (km)'])
-        for shift in shifts:
-            spamwriter.writerow([shift['date'], shift['start'], shift['end'], shift['kilometers']])
+            path = "kml_days/{}.kml".format(date)
+            kml = simplekml.Kml()
+            lin = kml.newlinestring(name="Pathway",
+                                    description="A pathway in Kirstenbosch",
+                                    coords=coords)
+            kml.save(path)
+            continue
 
 
 def haversine(lon1, lat1, lon2, lat2):
-    # deltas between origin and destination coordinates
-    dlat = math.radians(lat2-lat1)
-    dlon = math.radians(lon2-lon1)
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
 
-    # a central angle between the two points
-    a = math.sin(dlat/2) * math.sin(dlat/2) + math.cos(math.radians(lat1)) \
-    * math.cos(math.radians(lat2)) * math.sin(dlon/2) * math.sin(dlon/2)
-
-    # the determinative angle of the triangle on the surface of the sphere (Earth)
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-
-    # a spherical distance between the two points, i.e. hills etc are not considered
-    r = 6371
-    return r * c
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
