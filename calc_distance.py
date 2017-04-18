@@ -10,8 +10,8 @@ import math
 
 def run():
 
-    start_date = datetime.datetime(2015, month=6, day=30)
-    end_date = datetime.datetime(2015, month=12, day=31)
+    start_date = datetime.datetime(2016, month=1, day=1)
+    end_date = datetime.datetime(2016, month=4, day=1)
     date = None
     start = None
     end = None
@@ -44,6 +44,10 @@ def run():
         shift_distance = 0
         prev_lat = None
         prev_lon = None
+
+        if not row: 
+            print("Reached end of file")
+            break
 
         date = row[0]
         start = row[1]

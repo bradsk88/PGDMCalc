@@ -1,17 +1,17 @@
 import json
 import datetime
+import sys
+import os
 from math import sin, radians, cos, sqrt, asin
 
 import ijson
-import simplekml
 
 from calc_distance import haversine
 
-MIN_DATE = datetime.datetime(2015, month=6, day=29)
+MIN_DATE = datetime.datetime(2016, month=1, day=1)
 
-def run():
-
-    json_file = open('/home/bradsk88/Desktop/finance/LocationHistory.json')
+def run(file_location, max_date):
+    json_file = open(file_location)
     locations = ijson.parse(json_file)
 
     prev_lat = 0
@@ -28,7 +28,13 @@ def run():
 
     cont = True
 
+    if not os.path.exists('days'):
+        os.makedirs('days')
+
+    print("Processing Location History", end='')
+
     while (cont):
+        # print(".", end='')
         cont = False
         (lat, lon) = (None, None)
         prefix, event, value = next(locations, None)
@@ -45,7 +51,10 @@ def run():
             if i_date.date() != date_name:
                 # Date has changed
                 if date_name is not None:
-
+                    print(date_name.strftime("%Y-%m-%d"))
+                    if i_date > max_date:
+                       date_name = i_date.date()
+                       continue
                     with open("days/{}.json".format(date_name.strftime("%Y-%m-%d")), 'w') as outfile:
                         json.dump(list(reversed(events)), outfile, indent=3)
                         print("Wrote to {}".format(outfile.name))
